@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UrBox — Smart Locker Prototype</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script>
+tailwind.config={theme:{extend:{fontFamily:{sans:['Inter','sans-serif']},colors:{urbox:{blue:'#2563EB',dark:'#1E3A8A',yellow:'#F59E0B',light:'#F8FAFC'}}}}}
+</script>
+<style>
+*{box-sizing:border-box}
+body{font-family:Inter,sans-serif;background:#e2e8f0;margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;color:#1f2937}
+#app{width:100%;max-width:430px;height:100dvh;max-height:960px;background:#f8fafc;position:relative;overflow:hidden}
+@media(min-width:500px){#app{height:94vh;margin:auto;border:8px solid #0f172a;border-radius:36px;box-shadow:0 24px 60px #0002}}
+.screen{position:absolute;inset:0;display:none;flex-direction:column;background:#f8fafc;overflow-y:auto;padding-bottom:82px}
+.screen.active{display:flex}
+.map-bg{background-color:#eaf0f8;background-image:linear-gradient(#cbd5e1 1px,transparent 1px),linear-gradient(90deg,#cbd5e1 1px,transparent 1px);background-size:22px 22px}
+.nav{position:absolute;bottom:0;left:0;right:0;background:white;border-top:1px solid #e5e7eb;display:flex;justify-content:space-around;padding:12px 8px calc(12px + env(safe-area-inset-bottom));z-index:10}
+.nav button{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px;color:#94a3b8}
+.nav button.active{color:#2563eb;font-weight:700}
+.btn{border-radius:14px;padding:14px 16px;font-weight:700;display:block;width:100%;text-align:center}
+.primary{background:#2563eb;color:white}
+.secondary{border:1px solid #dbe2ea;background:white;color:#334155}
+.card{background:white;border:1px solid #edf0f4;border-radius:18px;padding:16px;box-shadow:0 3px 12px #0f172a06}
+.pill{font-size:11px;border-radius:999px;padding:5px 9px;font-weight:700;display:inline-block}
+input,select,textarea{outline-color:#2563eb}
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- HOME -->
+  <section id="home" class="screen active">
+    <header class="bg-urbox-blue text-white px-6 pt-10 pb-6 rounded-b-[30px]">
+      <div class="flex items-center justify-between mb-5">
+        <div><p class="text-blue-200 text-sm">Selamat datang di</p><h1 class="text-2xl font-extrabold">UrBox<span class="text-urbox-yellow">.</span></h1><p class="text-sm mt-1">Smart Locker, Move Freely.</p></div>
+        <button onclick="showScreen('profile')" class="w-11 h-11 rounded-full bg-white text-urbox-blue"><i class="fa-solid fa-user"></i></button>
+      </div>
+      <div class="relative"><i class="fa-solid fa-magnifying-glass absolute left-4 top-4 text-slate-400"></i><input id="search" oninput="renderLocations()" class="w-full rounded-full py-3.5 pl-11 pr-4 text-slate-800" placeholder="Cari stasiun, mall, venue..."></div>
+    </header>
+    
+    <!-- FIX: Posisi ikon lokasi disesuaikan agar lebih rapih & diberi overflow-hidden agar tidak keluar batas -->
+    <div class="map-bg h-40 relative flex items-center justify-center overflow-hidden">
+      <i class="fa-solid fa-location-dot absolute left-8 top-5 text-3xl text-blue-600 opacity-80"></i>
+      <i class="fa-solid fa-location-dot absolute right-8 top-10 text-3xl text-amber-500 opacity-80"></i>
+      <i class="fa-solid fa-location-dot absolute left-1/2 transform -translate-x-1/2 bottom-4 text-2xl text-slate-500 opacity-80"></i>
+      
+      <button onclick="showScreen('map')" class="bg-white rounded-full px-4 py-2 shadow font-semibold text-sm relative z-10"><i class="fa-solid fa-map mr-2 text-blue-600"></i>Lihat Peta & Filter</button>
+    </div>
+
+    <main class="px-5 pt-5">
+      <div class="flex items-center justify-between mb-3"><h2 class="font-extrabold text-lg">UrBox Terdekat</h2><button onclick="showScreen('map')" class="text-blue-600 text-sm font-semibold">Filter</button></div>
+      <div class="flex gap-2 overflow-x-auto pb-3">
+        <button class="pill bg-blue-100 text-blue-700" onclick="filterSize='All';renderLocations()">Semua ukuran</button>
+        <button class="pill bg-white border" onclick="filterSize='Small';renderLocations()">Small</button>
+        <button class="pill bg-white border" onclick="filterSize='Medium';renderLocations()">Medium</button>
+        <button class="pill bg-white border" onclick="filterSize='Large';renderLocations()">Large</button>
+      </div>
+      <div id="location-list" class="space-y-3"></div>
+      <div class="card mt-4 bg-blue-50 border-blue-100">
+        <div class="flex gap-3 items-start"><div class="w-10 h-10 rounded-xl bg-white text-blue-600 flex items-center justify-center"><i class="fa-solid fa-headset text-lg"></i></div><div class="flex-1"><h3 class="font-bold">Butuh bantuan kapan saja?</h3><p class="text-sm text-slate-600 mt-1">Customer Service UrBox siap membantu 24/7.</p><button onclick="showScreen('support')" class="text-blue-700 font-bold text-sm mt-2">Hubungi customer service →</button></div></div>
+      </div>
+    </main>
+  </section>
+
+  <!-- LOCATION DETAIL -->
+  <section id="detail" class="screen">
+    <header class="bg-blue-600 text-white p-5 pt-10 rounded-b-[28px]">
+      <button onclick="showScreen('home')" class="mb-5"><i class="fa-solid fa-arrow-left mr-2"></i>Kembali</button>
+      <div class="flex justify-between items-start"><div><span class="pill bg-amber-400 text-white">Detail lokasi</span><h1 id="detail-name" class="text-2xl font-extrabold mt-2">Lokasi UrBox</h1><p id="detail-distance" class="text-blue-100 text-sm mt-2"></p></div><i id="detail-icon" class="fa-solid fa-train-subway text-4xl text-blue-200"></i></div>
+    </header>
+    <main class="p-5 space-y-4">
+      <div class="card"><h2 class="font-bold mb-2">Informasi lokasi</h2><p id="detail-address" class="text-sm text-slate-600"></p><p id="detail-hours" class="text-sm text-slate-600 mt-2"></p><p class="text-sm text-slate-600 mt-2"><i class="fa-solid fa-route text-blue-600 mr-2"></i>Gunakan tombol arah untuk membuka peta eksternal.</p><button onclick="openDirections()" class="btn secondary mt-3"><i class="fa-solid fa-diamond-turn-right mr-2"></i>Petunjuk Arah</button></div>
+      <div><h2 class="font-extrabold text-lg mb-3">Pilih ukuran loker</h2><div id="size-list" class="space-y-3"></div></div>
+      <div class="card"><h3 class="font-bold">Informasi sebelum memesan</h3><ul class="text-sm text-slate-600 list-disc pl-5 mt-2 space-y-1"><li>Pastikan ukuran sesuai barang bawaan.</li><li>Waktu sewa dihitung berdasarkan durasi pilihan.</li><li>Pengingat dikirim 15 menit sebelum waktu sewa berakhir (simulasi prototype).</li><li>Jangan menyimpan barang terlarang atau mudah rusak.</li></ul></div>
+      <button id="book-btn" onclick="goCheckout()" class="btn primary" disabled style="opacity:.45">Lanjutkan Pemesanan</button>
+    </main>
+  </section>
+
+  <!-- CHECKOUT -->
+  <section id="checkout" class="screen">
+    <header class="bg-white p-5 pt-10 border-b flex items-center gap-3"><button onclick="showScreen('detail')" class="w-10 h-10 rounded-full bg-slate-100"><i class="fa-solid fa-arrow-left"></i></button><h1 class="font-extrabold text-xl">Konfirmasi Pemesanan</h1></header>
+    <main class="p-5 space-y-4">
+      <div class="card"><p class="text-xs text-slate-500">LOKASI</p><h2 id="checkout-location" class="font-bold text-lg"></h2><p id="checkout-address" class="text-sm text-slate-500 mt-1"></p><div class="grid grid-cols-2 gap-3 mt-4"><div class="bg-slate-50 rounded-xl p-3"><p class="text-xs text-slate-500">Ukuran loker</p><p id="checkout-size" class="font-bold mt-1"></p></div><div class="bg-slate-50 rounded-xl p-3"><p class="text-xs text-slate-500">Tarif per jam</p><p id="checkout-rate" class="font-bold mt-1"></p></div></div>
+      <label class="block text-sm font-semibold mt-4">Durasi sewa</label><div class="flex items-center gap-3 mt-2"><input id="duration" type="range" min="1" max="12" value="2" oninput="updateCheckout()" class="w-full accent-blue-600"><strong id="duration-label" class="min-w-[52px]">2 jam</strong></div>
+      <label class="block text-sm font-semibold mt-4">Waktu mulai sewa</label><input id="start-time" type="datetime-local" class="w-full border rounded-xl p-3 mt-2" onchange="updateCheckout()">
+      <div class="bg-blue-50 rounded-xl p-4 mt-4"><div class="flex justify-between text-sm"><span>Perkiraan selesai</span><strong id="end-time"></strong></div><div class="flex justify-between mt-3"><span class="font-semibold">Total pembayaran</span><strong id="total-price" class="text-xl text-blue-700"></strong></div></div></div>
+      <div class="card"><h3 class="font-bold mb-3">Metode pembayaran (simulasi)</h3><label class="flex items-center gap-3 p-3 border rounded-xl mb-2"><input type="radio" name="payment" value="QRIS" checked><i class="fa-solid fa-qrcode text-blue-600 text-xl"></i><span class="font-semibold">QRIS</span></label><label class="flex items-center gap-3 p-3 border rounded-xl"><input type="radio" name="payment" value="GoPay"><i class="fa-solid fa-wallet text-green-600 text-xl"></i><span class="font-semibold">GoPay</span></label><p class="text-xs text-slate-500 mt-3">Prototype tidak memproses uang sungguhan.</p></div>
+      <button onclick="confirmBooking()" class="btn primary">Konfirmasi & Simulasikan Pembayaran</button>
+    </main>
+  </section>
+
+  <!-- ACTIVE BOOKING -->
+  <section id="active" class="screen">
+    <header class="bg-blue-600 text-white px-6 pt-10 pb-7 rounded-b-[28px]"><div class="flex items-center justify-between"><span class="pill bg-green-500 text-white"><i class="fa-solid fa-circle text-[7px] mr-1"></i> SEWA AKTIF</span><button onclick="showScreen('support')" class="text-white text-sm"><i class="fa-solid fa-headset mr-1"></i>Bantuan</button></div><h1 class="text-2xl font-extrabold mt-4">Loker kamu siap digunakan</h1><p class="text-blue-100 text-sm mt-1">Simpan barang dengan aman dan lanjutkan aktivitasmu.</p></header>
+    <main class="p-5 space-y-4">
+      <div class="card"><div class="flex justify-between gap-3"><div><p class="text-xs text-slate-500">LOKASI</p><h2 id="active-location" class="font-bold mt-1"></h2><p id="active-size" class="text-sm text-slate-500 mt-1"></p></div><div class="text-right"><p class="text-xs text-slate-500">NOMOR LOKER</p><h2 id="locker-number" class="text-2xl font-extrabold text-blue-700">M-014</h2></div></div><hr class="my-4"><p class="text-sm text-slate-500">Waktu sewa berakhir</p><h3 id="active-end" class="font-bold text-lg"></h3><div class="bg-blue-50 rounded-xl p-4 mt-3"><p class="text-sm text-blue-800 font-semibold"><i class="fa-regular fa-clock mr-2"></i>Sisa waktu (simulasi)</p><p id="countdown" class="text-3xl font-extrabold text-blue-700 mt-1">--:--:--</p><p class="text-xs text-slate-500 mt-1">Pengingat 15 menit sebelum selesai ditampilkan selama prototype ini terbuka.</p></div></div>
+      <div class="card text-center"><div class="w-40 h-40 bg-slate-50 rounded-2xl border-2 border-blue-100 mx-auto flex items-center justify-center text-7xl text-slate-700"><i class="fa-solid fa-qrcode"></i></div><p class="font-bold mt-3">QR demo untuk akses loker</p><p class="text-xs text-slate-500 mt-1">Kode visual ini bukan QR akses nyata.</p><div class="mt-4 text-xs text-slate-500">PIN DEMO</div><div id="demo-pin" class="font-mono text-3xl font-extrabold tracking-[.3em] mt-1">8420</div><button onclick="demoUnlock()" class="btn primary mt-4">Simulasikan Buka Loker</button><p id="unlock-status" class="text-sm text-green-700 font-semibold mt-2"></p></div>
+      <div class="grid grid-cols-2 gap-3"><button onclick="extendRental()" class="btn secondary"><i class="fa-solid fa-clock mr-1"></i>Perpanjang</button><button onclick="showScreen('support')" class="btn secondary"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Laporkan Masalah</button></div>
+      <button onclick="endRental()" class="btn primary">Buka & Akhiri Sewa</button>
+    </main>
+  </section>
+
+  <!-- ACTIVITIES -->
+  <section id="activity" class="screen">
+    <header class="bg-blue-600 text-white px-6 pt-10 pb-6 rounded-b-[26px]"><h1 class="text-2xl font-extrabold">Aktivitas</h1><p class="text-blue-100 text-sm mt-1">Pemesanan dan riwayat transaksi UrBox.</p></header>
+    <main class="p-5"><div id="activity-content" class="space-y-3"></div><button onclick="showScreen('home')" class="btn primary mt-4">Cari UrBox</button></main>
+  </section>
+
+  <!-- SUPPORT -->
+  <section id="support" class="screen">
+    <header class="bg-blue-600 text-white px-6 pt-10 pb-6 rounded-b-[26px]"><button onclick="goPrevious()" class="mb-4"><i class="fa-solid fa-arrow-left mr-2"></i>Kembali</button><div class="flex gap-3 items-center"><div class="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-2xl"><i class="fa-solid fa-headset"></i></div><div><h1 class="text-2xl font-extrabold">Bantuan UrBox</h1><p class="text-blue-100 text-sm">Customer Service 24/7 • Demo</p></div></div></header>
+    <main class="p-5 space-y-4">
+      <div class="card border-blue-100 bg-blue-50"><div class="flex items-center gap-2 text-blue-800 font-bold"><i class="fa-solid fa-circle-check"></i> Layanan bantuan 24 jam</div><p class="text-sm text-slate-600 mt-2">Pilih kendala di bawah untuk membuat tiket bantuan simulasi. Kontak langsung belum terhubung ke petugas sungguhan.</p></div>
+      <div class="card"><h2 class="font-bold mb-3">Apa kendala kamu?</h2><select id="issue-type" class="w-full border rounded-xl p-3 mb-3"><option>Pintu loker tidak terbuka</option><option>QR atau PIN tidak berfungsi</option><option>Pembayaran bermasalah</option><option>Barang tertinggal di loker</option><option>Loker penuh atau rusak</option><option>Kendala lainnya</option></select><textarea id="issue-detail" rows="3" placeholder="Jelaskan masalah secara singkat..." class="w-full border rounded-xl p-3 mb-3"></textarea><button onclick="createTicket()" class="btn primary">Kirim Laporan</button><div id="ticket-result" class="mt-3 text-sm font-semibold text-green-700"></div></div>
+      <div class="card"><h2 class="font-bold">Butuh bantuan segera?</h2><p class="text-sm text-slate-600 mt-1">Untuk versi produksi, hubungkan tombol ini ke nomor telepon, WhatsApp bisnis, atau live chat resmi UrBox.</p><button onclick="alert('Demo: hubungkan tombol ini ke kontak resmi UrBox saat implementasi produksi.')" class="btn secondary mt-3"><i class="fa-brands fa-whatsapp text-green-600 mr-2"></i>Chat Customer Service (Demo)</button></div>
+      <div class="card"><h2 class="font-bold mb-2">FAQ singkat</h2><details class="py-2 border-b"><summary class="font-semibold text-sm">Bagaimana jika PIN gagal?</summary><p class="text-sm text-slate-600 mt-2">Cek detail booking lalu buat laporan jika masalah berlanjut.</p></details><details class="py-2 border-b"><summary class="font-semibold text-sm">Bisakah memperpanjang sewa?</summary><p class="text-sm text-slate-600 mt-2">Bisa melalui tombol Perpanjang selama opsi tersedia.</p></details><details class="py-2"><summary class="font-semibold text-sm">Apa yang terjadi jika terlambat?</summary><p class="text-sm text-slate-600 mt-2">Biaya keterlambatan perlu mengikuti aturan resmi lokasi; nilai demo tidak ditetapkan.</p></details></div>
+    </main>
+  </section>
+
+  <!-- MAP / FILTER -->
+  <section id="map" class="screen">
+    <header class="bg-blue-600 text-white p-5 pt-10 rounded-b-[26px]"><button onclick="showScreen('home')" class="mb-4"><i class="fa-solid fa-arrow-left mr-2"></i>Kembali</button><h1 class="text-2xl font-extrabold">Peta & Filter</h1><p class="text-blue-100 text-sm">Peta ini berupa ilustrasi untuk prototype.</p></header>
+    <main class="p-5 space-y-4"><div class="map-bg h-64 rounded-2xl relative overflow-hidden"><i class="fa-solid fa-location-dot absolute left-[20%] top-[20%] text-3xl text-blue-600"></i><i class="fa-solid fa-location-dot absolute right-[25%] top-[45%] text-3xl text-amber-500"></i><i class="fa-solid fa-location-dot absolute left-[55%] bottom-[15%] text-3xl text-blue-600"></i><div class="absolute bottom-3 left-3 bg-white/90 p-2 rounded-lg text-xs">Marker lokasi UrBox (demo)</div></div><div class="card"><label class="font-bold block mb-2">Filter ukuran</label><select id="map-filter" class="w-full border rounded-xl p-3" onchange="filterSize=this.value;renderLocations()"><option value="All">Semua ukuran</option><option value="Small">Small</option><option value="Medium">Medium</option><option value="Large">Large</option></select><button onclick="showScreen('home')" class="btn primary mt-3">Lihat daftar lokasi</button></div></main>
+  </section>
+
+  <!-- PROFILE -->
+  <section id="profile" class="screen">
+    <header class="bg-blue-600 text-white p-6 pt-10 rounded-b-[26px]"><button onclick="showScreen('home')" class="mb-4"><i class="fa-solid fa-arrow-left mr-2"></i>Kembali</button><h1 class="text-2xl font-extrabold">Profil Pengguna</h1><p class="text-blue-100 text-sm">Pengaturan akun demo</p></header>
+    <main class="p-5 space-y-4"><div class="card text-center"><div class="w-16 h-16 rounded-full bg-blue-100 text-blue-700 mx-auto flex items-center justify-center text-2xl"><i class="fa-solid fa-user"></i></div><h2 class="font-extrabold text-lg mt-3">Andi Urbanite</h2><p class="text-sm text-slate-500">akun.prototype@urbox.demo</p></div><div class="card"><h3 class="font-bold">Pengaturan</h3><label class="flex justify-between items-center py-3 border-b text-sm"><span>Pengingat waktu sewa</span><input id="reminder-toggle" type="checkbox" checked class="w-5 h-5 accent-blue-600"></label><button onclick="alert('Ini prototype. Login, keamanan akun, dan penyimpanan profil belum terhubung ke server.')" class="text-blue-700 font-semibold text-sm pt-3">Informasi akun & privasi</button></div><button onclick="showScreen('home')" class="btn secondary">Kembali ke Beranda</button></main>
+  </section>
+
+  <!-- BOTTOM NAV -->
+  <nav class="nav">
+    <button id="nav-home" class="active" onclick="showScreen('home')"><i class="fa-solid fa-house text-lg"></i><span>Beranda</span></button>
+    <button id="nav-activity" onclick="showScreen('activity')"><i class="fa-solid fa-receipt text-lg"></i><span>Aktivitas</span></button>
+    <button id="nav-support" onclick="showScreen('support')"><i class="fa-solid fa-headset text-lg"></i><span>Bantuan 24/7</span></button>
+  </nav>
+  <div id="toast" class="hidden absolute top-4 left-4 right-4 bg-slate-900 text-white rounded-xl p-4 shadow-xl z-50 text-sm"></div>
+</div>
+<script>
+const locations=[
+ {id:1,name:'Stasiun MRT Bundaran HI',distance:'200 m',address:'Jl. MH Thamrin, Jakarta Pusat (alamat contoh untuk demo)',hours:'Jam operasional mengikuti area stasiun; verifikasi sebelum implementasi.',icon:'fa-train-subway',stock:{Small:12,Medium:5,Large:2},prices:{Small:5000,Medium:10000,Large:20000},status:'Tersedia'},
+ {id:2,name:'MegaGym Sudirman',distance:'850 m',address:'Kawasan Sudirman, Jakarta (alamat contoh untuk demo)',hours:'06.00–22.00 (jam contoh)',icon:'fa-dumbbell',stock:{Small:8,Medium:3,Large:1},prices:{Small:5000,Medium:10000,Large:20000},status:'Terbatas'},
+ {id:3,name:'Venue Konser GBK',distance:'1,2 km',address:'Kawasan Gelora Bung Karno, Jakarta (alamat contoh untuk demo)',hours:'Mengikuti jadwal acara venue',icon:'fa-music',stock:{Small:0,Medium:2,Large:0},prices:{Small:5000,Medium:10000,Large:20000},status:'Terbatas'}
+];
+let currentLocation=locations[0],selectedSize='',filterSize='All',booking=null,history=[],previousScreen='home',countdownInterval=null,reminderShown=false;
+const rupiah=n=>'Rp '+Number(n).toLocaleString('id-ID');
+function showScreen(id){const active=document.querySelector('.screen.active');if(active&&active.id!=='support')previousScreen=active.id;document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));if(['home','activity','support'].includes(id))document.getElementById('nav-'+id).classList.add('active');if(id==='activity')renderActivity();if(id==='home')renderLocations();}
+function goPrevious(){showScreen(previousScreen||'home')}
+function renderLocations(){const q=(document.getElementById('search')?.value||'').toLowerCase();const list=document.getElementById('location-list');list.innerHTML='';locations.filter(l=>l.name.toLowerCase().includes(q)&& (filterSize==='All'||l.stock[filterSize]>0)).forEach(l=>{const total=Object.values(l.stock).reduce((a,b)=>a+b,0);const el=document.createElement('button');el.className='card w-full text-left flex gap-3 items-center';el.innerHTML=`<div class="w-14 h-14 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 text-2xl shrink-0"><i class="fa-solid ${l.icon}"></i></div><div class="flex-1 min-w-0"><h3 class="font-bold">${l.name}</h3><p class="text-xs text-slate-500 mt-1"><i class="fa-solid fa-person-walking mr-1"></i>${l.distance} • ${total} loker tersedia</p><p class="text-xs mt-1 ${total?'text-green-700':'text-red-600'}">${total?'Tersedia menurut data demo':'Penuh / tidak tersedia'}</p></div><i class="fa-solid fa-chevron-right text-slate-300"></i>`;el.onclick=()=>openLocation(l.id);list.appendChild(el)});if(!list.children.length)list.innerHTML='<div class="card text-sm text-slate-500">Tidak ada lokasi yang cocok dengan pencarian/filter.</div>';}
+function openLocation(id){currentLocation=locations.find(l=>l.id===id);selectedSize='';document.getElementById('detail-name').textContent=currentLocation.name;document.getElementById('detail-distance').textContent=currentLocation.distance+' dari titik acuan demo';document.getElementById('detail-address').textContent=currentLocation.address;document.getElementById('detail-hours').textContent='Jam operasional: '+currentLocation.hours;document.getElementById('detail-icon').className='fa-solid '+currentLocation.icon+' text-4xl text-blue-200';renderSizes();document.getElementById('book-btn').disabled=true;document.getElementById('book-btn').style.opacity='.45';showScreen('detail')}
+function renderSizes(){const root=document.getElementById('size-list');root.innerHTML='';Object.keys(currentLocation.stock).forEach(size=>{const count=currentLocation.stock[size],price=currentLocation.prices[size];const label=document.createElement('label');label.className='card flex items-center gap-3 cursor-pointer';label.innerHTML=`<input type="radio" name="locker-size" value="${size}" ${count===0?'disabled':''} class="w-5 h-5 accent-blue-600"><div class="flex-1"><div class="font-bold">${size} (${size[0]})</div><div class="text-xs text-slate-500">${{Small:'Tas selempang & jaket',Medium:'Ransel / backpack',Large:'Koper kabin kecil'}[size]}</div><div class="font-bold text-blue-700 mt-1">${rupiah(price)} <span class="font-normal text-xs text-slate-500">/ jam</span></div></div><div class="text-right"><span class="pill ${count===0?'bg-red-100 text-red-700':count<4?'bg-amber-100 text-amber-800':'bg-green-100 text-green-700'}">${count===0?'Penuh':count+' tersedia'}</span></div>`;const radio=label.querySelector('input');radio.addEventListener('change',()=>{selectedSize=size;document.getElementById('book-btn').disabled=false;document.getElementById('book-btn').style.opacity='1'});root.appendChild(label)})}
+function openDirections(){const query=encodeURIComponent(currentLocation.name+' '+currentLocation.address);window.open('https://www.google.com/maps/search/?api=1&query='+query,'_blank')}
+function goCheckout(){if(!selectedSize)return;document.getElementById('checkout-location').textContent=currentLocation.name;document.getElementById('checkout-address').textContent=currentLocation.address;document.getElementById('checkout-size').textContent=selectedSize;document.getElementById('checkout-rate').textContent=rupiah(currentLocation.prices[selectedSize]);const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());document.getElementById('start-time').value=d.toISOString().slice(0,16);document.getElementById('duration').value=2;updateCheckout();showScreen('checkout')}
+function updateCheckout(){const dur=Number(document.getElementById('duration').value);document.getElementById('duration-label').textContent=dur+' jam';const startVal=document.getElementById('start-time').value;const start=startVal?new Date(startVal):new Date();const end=new Date(start.getTime()+dur*3600000);document.getElementById('end-time').textContent=formatDate(end);document.getElementById('total-price').textContent=rupiah(currentLocation.prices[selectedSize]*dur)}
+function formatDate(d){return d.toLocaleString('id-ID',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}
+function confirmBooking(){if(!selectedSize)return;const start=new Date(document.getElementById('start-time').value);if(!document.getElementById('start-time').value||isNaN(start)||start.getTime()<Date.now()-60000){toast('Pilih waktu mulai yang valid (sekarang atau waktu mendatang).');return}const duration=Number(document.getElementById('duration').value),end=new Date(start.getTime()+duration*3600000);if(currentLocation.stock[selectedSize]<=0){toast('Maaf, ukuran loker ini sudah tidak tersedia di data demo.');return}currentLocation.stock[selectedSize]--;booking={id:'UB'+Date.now().toString().slice(-7),location:currentLocation.name,address:currentLocation.address,size:selectedSize,duration,start,end,price:currentLocation.prices[selectedSize]*duration,payment:document.querySelector('input[name="payment"]:checked').value,status:'Aktif',locker:selectedSize[0]+'-'+String(Math.floor(100+Math.random()*899)),opened:false,reminder:false};history.unshift({...booking});document.getElementById('active-location').textContent=booking.location;document.getElementById('active-size').textContent=booking.size+' • '+rupiah(booking.price)+' • '+booking.payment;document.getElementById('locker-number').textContent=booking.locker;document.getElementById('active-end').textContent=formatDate(booking.end);document.getElementById('unlock-status').textContent='';document.getElementById('demo-pin').textContent=String(Math.floor(1000+Math.random()*9000));reminderShown=false;startCountdown();toast('Pembayaran simulasi berhasil. Booking '+booking.id+' dibuat.');showScreen('active')}
+function startCountdown(){if(countdownInterval)clearInterval(countdownInterval);const tick=()=>{if(!booking)return;const remaining=booking.end-Date.now();if(remaining<=0){document.getElementById('countdown').textContent='00:00:00';if(!booking.reminder){booking.reminder=true;toast('Waktu sewa telah berakhir. Silakan ambil barang atau hubungi bantuan.')}return}const h=Math.floor(remaining/3600000),m=Math.floor(remaining%3600000/60000),s=Math.floor(remaining%60000/1000);document.getElementById('countdown').textContent=[h,m,s].map(n=>String(n).padStart(2,'0')).join(':');if(remaining<=15*60000&&!reminderShown&&document.getElementById('reminder-toggle').checked){reminderShown=true;toast('⏰ Pengingat: waktu sewa berakhir dalam 15 menit! Perpanjang jika diperlukan.');}};tick();countdownInterval=setInterval(tick,1000)}
+function demoUnlock(){document.getElementById('unlock-status').textContent='Simulasi: perintah buka loker berhasil. Mesin fisik belum terhubung.';if(booking)booking.opened=true}
+function extendRental(){if(!booking){toast('Tidak ada sewa aktif.');return}booking.end=new Date(booking.end.getTime()+3600000);booking.duration+=1;booking.price+=currentLocation.prices[booking.size];document.getElementById('active-end').textContent=formatDate(booking.end);document.getElementById('active-size').textContent=booking.size+' • '+rupiah(booking.price)+' • '+booking.payment;const h=history.find(x=>x.id===booking.id);if(h){h.end=booking.end;h.duration=booking.duration;h.price=booking.price}reminderShown=false;startCountdown();toast('Durasi diperpanjang 1 jam (simulasi). Biaya tambahan '+rupiah(currentLocation.prices[booking.size])+'.')}
+function endRental(){if(!booking)return;if(!confirm('Akhiri sesi? Pastikan semua barang sudah diambil.'))return;booking.status='Selesai';const h=history.find(x=>x.id===booking.id);if(h)h.status='Selesai';clearInterval(countdownInterval);toast('Sesi selesai. Terima kasih telah menggunakan UrBox.');booking=null;setTimeout(()=>showScreen('activity'),350)}
+function createTicket(){const type=document.getElementById('issue-type').value,detail=document.getElementById('issue-detail').value.trim();const id='TKT-'+Math.floor(10000+Math.random()*90000);document.getElementById('ticket-result').textContent='Tiket '+id+' berhasil dibuat (simulasi). Kendala: '+type+'. Status: Menunggu tindak lanjut demo.';document.getElementById('issue-detail').value='';}
+function renderActivity(){const root=document.getElementById('activity-content');root.innerHTML='';if(!history.length){root.innerHTML='<div class="card text-center py-10"><i class="fa-solid fa-receipt text-3xl text-slate-300"></i><h2 class="font-bold mt-3">Belum ada aktivitas</h2><p class="text-sm text-slate-500 mt-1">Pemesanan kamu akan muncul di sini.</p></div>';return}history.forEach(b=>{const el=document.createElement('div');el.className='card';el.innerHTML=`<div class="flex justify-between gap-2"><div><p class="text-xs text-slate-500">ID BOOKING ${b.id}</p><h3 class="font-bold mt-1">${b.location}</h3><p class="text-sm text-slate-500 mt-1">${b.size} • ${b.duration} jam</p></div><span class="pill ${b.status==='Aktif'?'bg-green-100 text-green-700':'bg-slate-100 text-slate-600'}">${b.status}</span></div><div class="flex justify-between items-end mt-4 pt-3 border-t"><div><p class="text-xs text-slate-500">Waktu selesai</p><p class="text-sm font-semibold">${formatDate(b.end)}</p><p class="text-xs text-slate-500 mt-1">Pembayaran: ${b.payment} (demo)</p></div><strong class="text-blue-700">${rupiah(b.price)}</strong></div>`;root.appendChild(el)})}
+function toast(message){const t=document.getElementById('toast');t.textContent=message;t.classList.remove('hidden');clearTimeout(t._timer);t._timer=setTimeout(()=>t.classList.add('hidden'),4500)}
+renderLocations();
+</script>
+</div>
+</body>
+</html>
