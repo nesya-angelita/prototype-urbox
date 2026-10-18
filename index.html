@@ -17,16 +17,35 @@ body{font-family:Inter,sans-serif;background:#e2e8f0;margin:0;display:flex;justi
 @media(min-width:500px){#app{height:94vh;margin:auto;border:8px solid #0f172a;border-radius:36px;box-shadow:0 24px 60px #0002}}
 .screen{position:absolute;inset:0;display:none;flex-direction:column;background:#f8fafc;overflow-y:auto;padding-bottom:82px}
 .screen.active{display:flex}
-.map-bg{background-color:#eaf0f8;background-image:linear-gradient(#cbd5e1 1px,transparent 1px),linear-gradient(90deg,#cbd5e1 1px,transparent 1px);background-size:22px 22px}
 .nav{position:absolute;bottom:0;left:0;right:0;background:white;border-top:1px solid #e5e7eb;display:flex;justify-content:space-around;padding:12px 8px calc(12px + env(safe-area-inset-bottom));z-index:10}
 .nav button{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px;color:#94a3b8}
 .nav button.active{color:#2563eb;font-weight:700}
-.btn{border-radius:14px;padding:14px 16px;font-weight:700;display:block;width:100%;text-align:center}
-.primary{background:#2563eb;color:white}
+.btn, .primary-btn{border-radius:14px;padding:14px 16px;font-weight:700;display:block;width:100%;text-align:center;border:none;cursor:pointer}
+.primary, .primary-btn{background:#2563eb;color:white}
 .secondary{border:1px solid #dbe2ea;background:white;color:#334155}
 .card{background:white;border:1px solid #edf0f4;border-radius:18px;padding:16px;box-shadow:0 3px 12px #0f172a06}
 .pill{font-size:11px;border-radius:999px;padding:5px 9px;font-weight:700;display:inline-block}
 input,select,textarea{outline-color:#2563eb}
+
+/* CSS Tambahan untuk Peta Baru */
+.map-card { background: white; border: 1px solid #edf0f4; border-radius: 18px; padding: 16px; margin-bottom: 20px; box-shadow: 0 3px 12px #0f172a06; }
+.map-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.map-head h2 { font-weight: 800; font-size: 1.125rem; margin: 0; }
+.text-btn { background: transparent; border: none; color: #2563eb; font-weight: 600; font-size: 0.875rem; cursor: pointer; padding: 0; }
+.map-stage { position: relative; height: 160px; background-color: #eaf0f8; background-image: linear-gradient(#cbd5e1 1px, transparent 1px), linear-gradient(90deg, #cbd5e1 1px, transparent 1px); background-size: 22px 22px; border-radius: 12px; overflow: hidden; margin-bottom: 12px; border: 1px solid #dbe2ea; }
+.map-river { position: absolute; top: 40%; left: -10%; width: 120%; height: 25px; background: #bfdbfe; transform: rotate(-10deg); opacity: 0.7; }
+.map-park { position: absolute; top: 10%; right: 15%; width: 60px; height: 60px; background: #bbf7d0; border-radius: 50%; opacity: 0.6; }
+.map-park.two { top: 60%; left: 5%; width: 45px; height: 45px; }
+.map-pin { position: absolute; transform: translate(-50%, -50%); background: white; border-radius: 50%; padding: 4px; box-shadow: 0 4px 8px rgba(0,0,0,0.15); color: #2563eb; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 5; }
+.map-pin.orange { color: #f59e0b; }
+.map-pin.gray { color: #64748b; }
+.map-label { position: absolute; transform: translate(-50%, 12px); font-size: 0.6rem; font-weight: 700; background: rgba(255,255,255,0.9); padding: 2px 6px; border-radius: 6px; white-space: nowrap; z-index: 4; color: #334155; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+.map-legend { display: flex; gap: 12px; justify-content: center; font-size: 0.7rem; color: #64748b; margin-bottom: 12px; font-weight: 500; }
+.legend-item { display: flex; align-items: center; gap: 4px; }
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; background: #2563eb; display: inline-block; }
+.legend-dot.orange { background: #f59e0b; }
+.legend-dot.gray { background: #64748b; }
+.map-action { margin-top: 4px; }
 </style>
 </head>
 <body>
@@ -41,16 +60,27 @@ input,select,textarea{outline-color:#2563eb}
       <div class="relative"><i class="fa-solid fa-magnifying-glass absolute left-4 top-4 text-slate-400"></i><input id="search" oninput="renderLocations()" class="w-full rounded-full py-3.5 pl-11 pr-4 text-slate-800" placeholder="Cari stasiun, mall, venue..."></div>
     </header>
     
-    <!-- FIX: Posisi ikon lokasi disesuaikan agar lebih rapih & diberi overflow-hidden agar tidak keluar batas -->
-    <div class="map-bg h-40 relative flex items-center justify-center overflow-hidden">
-      <i class="fa-solid fa-location-dot absolute left-8 top-5 text-3xl text-blue-600 opacity-80"></i>
-      <i class="fa-solid fa-location-dot absolute right-8 top-10 text-3xl text-amber-500 opacity-80"></i>
-      <i class="fa-solid fa-location-dot absolute left-1/2 transform -translate-x-1/2 bottom-4 text-2xl text-slate-500 opacity-80"></i>
-      
-      <button onclick="showScreen('map')" class="bg-white rounded-full px-4 py-2 shadow font-semibold text-sm relative z-10"><i class="fa-solid fa-map mr-2 text-blue-600"></i>Lihat Peta & Filter</button>
-    </div>
+    <main class="px-5 pt-6">
+      <!-- Peta Lokasi Baru -->
+      <aside class="map-card" aria-labelledby="mapHeading">
+        <div class="map-head"><h2 id="mapHeading">Peta lokasi</h2><button class="text-btn" id="resetMap" onclick="renderLocations()">Reset</button></div>
+        <div class="map-stage" id="mapStage" role="img" aria-label="Peta ilustrasi lokasi loker UrBox">
+          <div class="map-river"></div><div class="map-park"></div><div class="map-park two"></div>
+          <button class="map-pin" style="left:25%;top:34%" title="Stasiun MRT Bundaran HI" aria-label="Stasiun MRT Bundaran HI"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2" fill="currentColor"/></svg></button>
+          <span class="map-label" style="left:25%;top:34%">MRT Bundaran HI</span>
+          <button class="map-pin orange" style="left:72%;top:53%" title="MegaGym Sudirman" aria-label="MegaGym Sudirman"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2" fill="currentColor"/></svg></button>
+          <span class="map-label" style="left:72%;top:53%">MegaGym</span>
+          <button class="map-pin gray" style="left:45%;top:76%" title="Venue Konser GBK" aria-label="Venue Konser GBK"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2" fill="currentColor"/></svg></button>
+          <span class="map-label" style="left:45%;top:76%">Venue GBK</span>
+        </div>
+        <div class="map-legend">
+          <span class="legend-item"><i class="legend-dot"></i> Transportasi</span>
+          <span class="legend-item"><i class="legend-dot orange"></i> Olahraga</span>
+          <span class="legend-item"><i class="legend-dot gray"></i> Event & lainnya</span>
+        </div>
+        <button class="primary-btn map-action" id="showMap" onclick="showScreen('map')">Lihat Peta & Filter</button>
+      </aside>
 
-    <main class="px-5 pt-5">
       <div class="flex items-center justify-between mb-3"><h2 class="font-extrabold text-lg">UrBox Terdekat</h2><button onclick="showScreen('map')" class="text-blue-600 text-sm font-semibold">Filter</button></div>
       <div class="flex gap-2 overflow-x-auto pb-3">
         <button class="pill bg-blue-100 text-blue-700" onclick="filterSize='All';renderLocations()">Semua ukuran</button>
@@ -123,7 +153,9 @@ input,select,textarea{outline-color:#2563eb}
   <!-- MAP / FILTER -->
   <section id="map" class="screen">
     <header class="bg-blue-600 text-white p-5 pt-10 rounded-b-[26px]"><button onclick="showScreen('home')" class="mb-4"><i class="fa-solid fa-arrow-left mr-2"></i>Kembali</button><h1 class="text-2xl font-extrabold">Peta & Filter</h1><p class="text-blue-100 text-sm">Peta ini berupa ilustrasi untuk prototype.</p></header>
-    <main class="p-5 space-y-4"><div class="map-bg h-64 rounded-2xl relative overflow-hidden"><i class="fa-solid fa-location-dot absolute left-[20%] top-[20%] text-3xl text-blue-600"></i><i class="fa-solid fa-location-dot absolute right-[25%] top-[45%] text-3xl text-amber-500"></i><i class="fa-solid fa-location-dot absolute left-[55%] bottom-[15%] text-3xl text-blue-600"></i><div class="absolute bottom-3 left-3 bg-white/90 p-2 rounded-lg text-xs">Marker lokasi UrBox (demo)</div></div><div class="card"><label class="font-bold block mb-2">Filter ukuran</label><select id="map-filter" class="w-full border rounded-xl p-3" onchange="filterSize=this.value;renderLocations()"><option value="All">Semua ukuran</option><option value="Small">Small</option><option value="Medium">Medium</option><option value="Large">Large</option></select><button onclick="showScreen('home')" class="btn primary mt-3">Lihat daftar lokasi</button></div></main>
+    <main class="p-5 space-y-4">
+      <div class="card"><label class="font-bold block mb-2">Filter ukuran</label><select id="map-filter" class="w-full border rounded-xl p-3" onchange="filterSize=this.value;renderLocations()"><option value="All">Semua ukuran</option><option value="Small">Small</option><option value="Medium">Medium</option><option value="Large">Large</option></select><button onclick="showScreen('home')" class="btn primary mt-3">Terapkan Filter</button></div>
+    </main>
   </section>
 
   <!-- PROFILE -->
@@ -142,9 +174,9 @@ input,select,textarea{outline-color:#2563eb}
 </div>
 <script>
 const locations=[
- {id:1,name:'Stasiun MRT Bundaran HI',distance:'200 m',address:'Jl. MH Thamrin, Jakarta Pusat (alamat contoh untuk demo)',hours:'Jam operasional mengikuti area stasiun; verifikasi sebelum implementasi.',icon:'fa-train-subway',stock:{Small:12,Medium:5,Large:2},prices:{Small:5000,Medium:10000,Large:20000},status:'Tersedia'},
- {id:2,name:'MegaGym Sudirman',distance:'850 m',address:'Kawasan Sudirman, Jakarta (alamat contoh untuk demo)',hours:'06.00–22.00 (jam contoh)',icon:'fa-dumbbell',stock:{Small:8,Medium:3,Large:1},prices:{Small:5000,Medium:10000,Large:20000},status:'Terbatas'},
- {id:3,name:'Venue Konser GBK',distance:'1,2 km',address:'Kawasan Gelora Bung Karno, Jakarta (alamat contoh untuk demo)',hours:'Mengikuti jadwal acara venue',icon:'fa-music',stock:{Small:0,Medium:2,Large:0},prices:{Small:5000,Medium:10000,Large:20000},status:'Terbatas'}
+ {id:1,name:'Stasiun MRT Bundaran HI',distance:'200 m',address:'Jl. MH Thamrin, Jakarta Pusat',hours:'05.00–24.00',icon:'fa-train-subway',stock:{Small:12,Medium:5,Large:2},prices:{Small:5000,Medium:10000,Large:20000},status:'Tersedia'},
+ {id:2,name:'MegaGym Sudirman',distance:'850 m',address:'Kawasan Sudirman, Jakarta',hours:'06.00–22.00',icon:'fa-dumbbell',stock:{Small:8,Medium:3,Large:1},prices:{Small:5000,Medium:10000,Large:20000},status:'Terbatas'},
+ {id:3,name:'Venue Konser GBK',distance:'1,2 km',address:'Kawasan Gelora Bung Karno',hours:'Mengikuti jadwal acara',icon:'fa-music',stock:{Small:0,Medium:2,Large:0},prices:{Small:5000,Medium:10000,Large:20000},status:'Terbatas'}
 ];
 let currentLocation=locations[0],selectedSize='',filterSize='All',booking=null,history=[],previousScreen='home',countdownInterval=null,reminderShown=false;
 const rupiah=n=>'Rp '+Number(n).toLocaleString('id-ID');
